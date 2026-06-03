@@ -1,0 +1,14 @@
+{
+  "name": "asp-checker",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260603.1",
+    "@types/bun": "latest",
+    "wrangler": "^4.97.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

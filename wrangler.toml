@@ -1,0 +1,16 @@
+name = "asp-checker"
+main = "src/index.ts"
+compatibility_date = "2024-03-20"
+
+[triggers]
+crons = ["*/30 * * * *"] # Runs every 30 minutes. Timezone logic is handled in the code.
+
+# We will create this KV namespace later and you'll need to update the id.
+[[kv_namespaces]]
+binding = "STATE"
+id = "fbbbb329979447b6ba4fe90cbe0fb0c3"
+
+# Ensure you set these using `npx wrangler secret put DISCORD_BOT_TOKEN` and `DISCORD_USER_ID`
+# [vars]
+# DISCORD_BOT_TOKEN = "..."
+# DISCORD_USER_ID = "..."
