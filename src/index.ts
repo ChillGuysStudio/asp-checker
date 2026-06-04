@@ -142,15 +142,24 @@ export default {
         if (command === 'set') {
           const urlOption = interaction.data.options.find((o: any) => o.name === 'url');
           if (urlOption) {
-            const url = urlOption.value;
-            state.target_url = url;
-            if (url.includes('/api/fod/request/')) {
+            let url = urlOption.value;
+            
+            // Auto-convert frontend booking URL to the API booking URL
+            if (url.includes('/cerere/')) {
+              url = url.replace('/cerere/', '/api/fod/request/');
+              state.target_url = url;
+              state.url_type = 'booking';
+              replyMessage = `✅ I noticed you pasted the frontend URL! I've automatically converted it to the **Booking API**:\n<${url}>\nI will stop scraping when an appointment is found.`;
+            } else if (url.includes('/api/fod/request/')) {
+              state.target_url = url;
               state.url_type = 'booking';
               replyMessage = `✅ Target URL set. Type detected: **Booking Check**. I will stop scraping when an appointment is found.`;
             } else if (url.includes('/api/qmatic/dates/')) {
+              state.target_url = url;
               state.url_type = 'dates';
               replyMessage = `✅ Target URL set. Type detected: **Available Dates**. I will notify you when dates appear.`;
             } else {
+              state.target_url = url;
               state.url_type = 'dates'; // Fallback
               replyMessage = `⚠️ Target URL set, but type couldn't be automatically detected. Defaulting to 'dates'.`;
             }
