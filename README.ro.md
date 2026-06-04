@@ -64,21 +64,30 @@ Pentru a controla worker-ul și a primi mesaje, trebuie să creezi un simplu Bot
 
 3. Creează spațiul KV:
    ```bash
+   bunx wrangler kv namespace create "STATE"
+   # sau
    npx wrangler kv namespace create "STATE"
    ```
    *(Copiază `id`-ul generat în fișierul tău `wrangler.toml`)*
 
 4. Adaugă secretele Discord în Worker-ul tău:
    ```bash
-   npx wrangler secret put DISCORD_BOT_TOKEN
-   npx wrangler secret put DISCORD_USER_ID
-   npx wrangler secret put DISCORD_PUBLIC_KEY
-   npx wrangler secret put DISCORD_APPLICATION_ID
+   bunx wrangler secret put DISCORD_BOT_TOKEN
+   bunx wrangler secret put DISCORD_USER_ID
+   bunx wrangler secret put DISCORD_PUBLIC_KEY
+   bunx wrangler secret put DISCORD_APPLICATION_ID
+   # sau cu npm:
+   # npx wrangler secret put DISCORD_BOT_TOKEN
+   # npx wrangler secret put DISCORD_USER_ID
+   # npx wrangler secret put DISCORD_PUBLIC_KEY
+   # npx wrangler secret put DISCORD_APPLICATION_ID
    ```
 
 5. Lansează (Deploy)!
    ```bash
    bunx wrangler deploy
+   # sau
+   npx wrangler deploy
    ```
 
 ## 🔌 Conectarea Comenzilor Slash Discord

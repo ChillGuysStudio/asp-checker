@@ -64,21 +64,30 @@
 
 3. Создайте пространство имен KV:
    ```bash
+   bunx wrangler kv namespace create "STATE"
+   # или
    npx wrangler kv namespace create "STATE"
    ```
    *(Скопируйте сгенерированный `id` в ваш файл `wrangler.toml`)*
 
 4. Добавьте секреты Discord в ваш Worker:
    ```bash
-   npx wrangler secret put DISCORD_BOT_TOKEN
-   npx wrangler secret put DISCORD_USER_ID
-   npx wrangler secret put DISCORD_PUBLIC_KEY
-   npx wrangler secret put DISCORD_APPLICATION_ID
+   bunx wrangler secret put DISCORD_BOT_TOKEN
+   bunx wrangler secret put DISCORD_USER_ID
+   bunx wrangler secret put DISCORD_PUBLIC_KEY
+   bunx wrangler secret put DISCORD_APPLICATION_ID
+   # или через npm:
+   # npx wrangler secret put DISCORD_BOT_TOKEN
+   # npx wrangler secret put DISCORD_USER_ID
+   # npx wrangler secret put DISCORD_PUBLIC_KEY
+   # npx wrangler secret put DISCORD_APPLICATION_ID
    ```
 
 5. Выполните деплой!
    ```bash
    bunx wrangler deploy
+   # или
+   npx wrangler deploy
    ```
 
 ## 🔌 Подключение Slash-команд Discord

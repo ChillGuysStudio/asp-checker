@@ -64,21 +64,30 @@ To control the worker and receive DMs, you need to create a simple Discord Bot:
 
 3. Create the KV Namespace:
    ```bash
+   bunx wrangler kv namespace create "STATE"
+   # or
    npx wrangler kv namespace create "STATE"
    ```
    *(Copy the generated `id` into your `wrangler.toml`)*
 
 4. Add Discord Secrets to your Worker:
    ```bash
-   npx wrangler secret put DISCORD_BOT_TOKEN
-   npx wrangler secret put DISCORD_USER_ID
-   npx wrangler secret put DISCORD_PUBLIC_KEY
-   npx wrangler secret put DISCORD_APPLICATION_ID
+   bunx wrangler secret put DISCORD_BOT_TOKEN
+   bunx wrangler secret put DISCORD_USER_ID
+   bunx wrangler secret put DISCORD_PUBLIC_KEY
+   bunx wrangler secret put DISCORD_APPLICATION_ID
+   # or with npm:
+   # npx wrangler secret put DISCORD_BOT_TOKEN
+   # npx wrangler secret put DISCORD_USER_ID
+   # npx wrangler secret put DISCORD_PUBLIC_KEY
+   # npx wrangler secret put DISCORD_APPLICATION_ID
    ```
 
 5. Deploy!
    ```bash
    bunx wrangler deploy
+   # or
+   npx wrangler deploy
    ```
 
 ## 🔌 Connecting Discord Slash Commands
