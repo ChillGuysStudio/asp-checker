@@ -1,5 +1,5 @@
 import { verifyKey, InteractionType, InteractionResponseType } from 'discord-interactions';
-import { Env, AppState } from './types';
+import type { Env, AppState } from './types';
 import { sendDiscordDM } from './discord';
 import { performScrape } from './scraper';
 

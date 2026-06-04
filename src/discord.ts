@@ -1,4 +1,4 @@
-import { Env } from './types';
+import type { Env } from './types';
 
 export async function sendDiscordDM(env: Env, content: string) {
   if (!env.DISCORD_BOT_TOKEN || !env.DISCORD_USER_ID) return;

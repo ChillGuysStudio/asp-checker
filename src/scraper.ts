@@ -1,4 +1,4 @@
-import { Env, AppState } from './types';
+import type { Env, AppState } from './types';
 import { sendDiscordDM } from './discord';
 
 export async function performScrape(env: Env, state: AppState): Promise<AppState> {
