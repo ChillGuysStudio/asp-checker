@@ -68,7 +68,7 @@ async function performScrape(env: Env, state: AppState): Promise<AppState> {
       try {
         const data = JSON.parse(text);
         if (data.hasAppointment === true) {
-          const date = data.examinationDate || "Unknown Date";
+          const date = data.appointment?.date || "Unknown Date";
           await sendDiscordDM(env, `✅ **SUCCESSFUL BOOKING DETECTED!** ✅\nDate: ${date}\nStopping the scraper now.`);
           state.is_scraping = false; // Stop scraping
         }
@@ -189,16 +189,16 @@ export default {
           } else {
             // Because Discord requires a response within 3 seconds, we use `ctx.waitUntil` for the heavy work.
             ctx.waitUntil(
-              performScrape(env, state).then((newState) => {
-                env.STATE.put('daily_stats', JSON.stringify(newState));
+              performScrape(env, state).then(async (newState) => {
+                await env.STATE.put('daily_stats', JSON.stringify(newState));
               })
             );
             replyMessage = "Fetching right now in the background! You will receive a DM if anything is found.";
           }
         }
 
-        // Save state changes (except for fetch, which is handled asynchronously above)
-        if (command !== 'fetch') {
+        // Save state changes only if a modifying command was called
+        if (command === 'set' || command === 'toggle') {
           await env.STATE.put('daily_stats', JSON.stringify(state));
         }
 
