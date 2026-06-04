@@ -48,25 +48,21 @@ To control the worker and receive DMs, you need to create a simple Discord Bot:
 
 ## 🚀 Setup & Deployment
 
-1. Install dependencies (Bun is recommended, but you can also use npm/pnpm/yarn):
+*(Note: Bun is recommended, but you can use `npm` instead of `bun`, and `npx` instead of `bunx` for all commands below if you prefer)*
+
+1. Install dependencies:
    ```bash
    bun install
-   # or
-   npm install
    ```
 
 2. Authenticate with Cloudflare:
    ```bash
    bunx wrangler login
-   # or
-   npx wrangler login
    ```
 
 3. Create the KV Namespace:
    ```bash
    bunx wrangler kv namespace create "STATE"
-   # or
-   npx wrangler kv namespace create "STATE"
    ```
    *(Copy the generated `id` into your `wrangler.toml`)*
 
@@ -76,18 +72,11 @@ To control the worker and receive DMs, you need to create a simple Discord Bot:
    bunx wrangler secret put DISCORD_USER_ID
    bunx wrangler secret put DISCORD_PUBLIC_KEY
    bunx wrangler secret put DISCORD_APPLICATION_ID
-   # or with npm:
-   # npx wrangler secret put DISCORD_BOT_TOKEN
-   # npx wrangler secret put DISCORD_USER_ID
-   # npx wrangler secret put DISCORD_PUBLIC_KEY
-   # npx wrangler secret put DISCORD_APPLICATION_ID
    ```
 
 5. Deploy!
    ```bash
    bunx wrangler deploy
-   # or
-   npx wrangler deploy
    ```
 
 ## 🔌 Connecting Discord Slash Commands

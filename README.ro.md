@@ -48,25 +48,21 @@ Pentru a controla worker-ul și a primi mesaje, trebuie să creezi un simplu Bot
 
 ## 🚀 Configurare & Lansare
 
-1. Instalează dependențele (Bun este recomandat, dar poți folosi și npm/pnpm/yarn):
+*(Notă: Bun este recomandat, dar poți folosi `npm` în loc de `bun` și `npx` în loc de `bunx` pentru toate comenzile de mai jos dacă preferi)*
+
+1. Instalează dependențele:
    ```bash
    bun install
-   # sau
-   npm install
    ```
 
 2. Autentifică-te pe Cloudflare:
    ```bash
    bunx wrangler login
-   # sau
-   npx wrangler login
    ```
 
 3. Creează spațiul KV:
    ```bash
    bunx wrangler kv namespace create "STATE"
-   # sau
-   npx wrangler kv namespace create "STATE"
    ```
    *(Copiază `id`-ul generat în fișierul tău `wrangler.toml`)*
 
@@ -76,18 +72,11 @@ Pentru a controla worker-ul și a primi mesaje, trebuie să creezi un simplu Bot
    bunx wrangler secret put DISCORD_USER_ID
    bunx wrangler secret put DISCORD_PUBLIC_KEY
    bunx wrangler secret put DISCORD_APPLICATION_ID
-   # sau cu npm:
-   # npx wrangler secret put DISCORD_BOT_TOKEN
-   # npx wrangler secret put DISCORD_USER_ID
-   # npx wrangler secret put DISCORD_PUBLIC_KEY
-   # npx wrangler secret put DISCORD_APPLICATION_ID
    ```
 
 5. Lansează (Deploy)!
    ```bash
    bunx wrangler deploy
-   # sau
-   npx wrangler deploy
    ```
 
 ## 🔌 Conectarea Comenzilor Slash Discord
