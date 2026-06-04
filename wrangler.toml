@@ -10,7 +10,9 @@ crons = ["*/30 * * * *"] # Runs every 30 minutes. Timezone logic is handled in t
 binding = "STATE"
 id = "fbbbb329979447b6ba4fe90cbe0fb0c3"
 
-# Ensure you set these using `npx wrangler secret put DISCORD_BOT_TOKEN` and `DISCORD_USER_ID`
+# Ensure you set these using `npx wrangler secret put <VAR_NAME>`
 # [vars]
 # DISCORD_BOT_TOKEN = "..."
 # DISCORD_USER_ID = "..."
+# DISCORD_PUBLIC_KEY = "..."
+# DISCORD_APPLICATION_ID = "..."

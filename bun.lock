@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "asp-checker",
+      "dependencies": {
+        "discord-interactions": "^4.4.0",
+      },
       "devDependencies": {
         "@cloudflare/workers-types": "^4.20260603.1",
         "@types/bun": "latest",
@@ -164,6 +167,8 @@
     "cookie": ["cookie@1.1.1", "", {}, "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ=="],
 
     "detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
+
+    "discord-interactions": ["discord-interactions@4.4.0", "", {}, "sha512-jjJx8iwAeJcj8oEauV43fue9lNqkf38fy60aSs2+G8D1nJmDxUIrk08o3h0F3wgwuBWWJUZO+X/VgfXsxpCiJA=="],
 
     "error-stack-parser-es": ["error-stack-parser-es@1.0.5", "", {}, "sha512-5qucVt2XcuGMcEGgWI7i+yZpmpByQ8J1lHhcL7PwqCwu9FPP3VUXzT4ltHe5i2z9dePwEHcDVOAfSnHsOlCXRA=="],
 

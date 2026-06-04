@@ -1,18 +1,25 @@
+import { verifyKey, InteractionType, InteractionResponseType } from 'discord-interactions';
+
 export interface Env {
   STATE: KVNamespace;
   DISCORD_BOT_TOKEN: string;
   DISCORD_USER_ID: string;
+  DISCORD_PUBLIC_KEY: string;
+  DISCORD_APPLICATION_ID: string;
 }
 
-const API_URL = "https://eservicii.gov.md/asp/dimtcca/api/qmatic/dates/f4bac1a2f8d6e023084cfe8fd845a0ae68c776c6ab138622b5d864f59408b0b8/9c93477f3ac5814a4c29f35b35089992704c8b0fb90ac3da9651f39515265370";
+interface AppState {
+  target_url: string | null;
+  url_type: 'dates' | 'booking' | null;
+  is_scraping: boolean;
+  fetches_today: number;
+  found_dates_today: boolean;
+}
 
+// Helper to send a DM
 async function sendDiscordDM(env: Env, content: string) {
-  if (!env.DISCORD_BOT_TOKEN || !env.DISCORD_USER_ID) {
-    console.error("Missing Discord credentials in environment variables.");
-    return;
-  }
+  if (!env.DISCORD_BOT_TOKEN || !env.DISCORD_USER_ID) return;
 
-  // 1. Create/Get DM channel with the user
   const channelRes = await fetch('https://discord.com/api/v10/users/@me/channels', {
     method: 'POST',
     headers: {
@@ -22,16 +29,11 @@ async function sendDiscordDM(env: Env, content: string) {
     body: JSON.stringify({ recipient_id: env.DISCORD_USER_ID })
   });
 
-  if (!channelRes.ok) {
-    console.error("Failed to create DM channel:", await channelRes.text());
-    return;
-  }
-
+  if (!channelRes.ok) return;
   const channelData: any = await channelRes.json();
   const channelId = channelData.id;
 
-  // 2. Send the message to the DM channel
-  const messageRes = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+  await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
     method: 'POST',
     headers: {
       'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
@@ -39,101 +41,183 @@ async function sendDiscordDM(env: Env, content: string) {
     },
     body: JSON.stringify({ content })
   });
-  
-  if (!messageRes.ok) {
-    console.error("Failed to send message:", await messageRes.text());
+}
+
+// Reusable logic for fetching the target URL
+async function performScrape(env: Env, state: AppState): Promise<AppState> {
+  if (!state.target_url) {
+    return state;
   }
+
+  try {
+    const res = await fetch(state.target_url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (!res.ok) {
+      console.error(`API returned status ${res.status}`);
+      return state;
+    }
+
+    const text = await res.text();
+    state.fetches_today++;
+
+    if (state.url_type === 'booking') {
+      try {
+        const data = JSON.parse(text);
+        if (data.hasAppointment === true) {
+          const date = data.examinationDate || "Unknown Date";
+          await sendDiscordDM(env, `✅ **SUCCESSFUL BOOKING DETECTED!** ✅\nDate: ${date}\nStopping the scraper now.`);
+          state.is_scraping = false; // Stop scraping
+        }
+      } catch (e) {
+        console.error("Failed to parse booking JSON");
+      }
+    } else if (state.url_type === 'dates') {
+      if (text.trim() !== '[]' && text.trim() !== '') {
+        state.found_dates_today = true;
+        await sendDiscordDM(env, `🚨 **DATES AVAILABLE!** 🚨\nCheck the ASP portal now! I found something: \`\`\`json\n${text.substring(0, 500)}\n\`\`\``);
+      }
+    }
+
+  } catch (error) {
+    console.error("Error fetching URL:", error);
+  }
+
+  return state;
 }
 
 export default {
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    // Get current time in Chisinau
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Europe/Chisinau',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: false,
-    });
-    
-    // formatter.format(now) returns something like "24:30" or "05:00" wait actually 24-hour format returns "5:00" or "23:00"
-    const parts = formatter.formatToParts(now);
-    let chisinauHour = 0;
-    let chisinauMinute = 0;
-    for (const part of parts) {
-      if (part.type === 'hour') chisinauHour = parseInt(part.value, 10);
-      if (part.type === 'minute') chisinauMinute = parseInt(part.value, 10);
-    }
-    
-    // In some Intl implementations, 24-hour hour can be 24 instead of 0.
-    if (chisinauHour === 24) chisinauHour = 0;
-
-    // Check if we are between 5 AM and 11 PM (23:00)
-    // The cron runs every 30 minutes. We want it to run from 05:00 up to 23:00.
-    if (chisinauHour < 5 || chisinauHour > 23) {
-      console.log(`Current Chisinau time is ${chisinauHour}:${chisinauMinute}. Outside of working hours (5-23). Skipping.`);
-      return;
-    }
-    
-    // If it's 23:30, we skip (we only want up to 23:00)
-    if (chisinauHour === 23 && chisinauMinute > 15) {
-      console.log(`Current Chisinau time is 23:${chisinauMinute}. Skipping 23:30 run.`);
-      return;
-    }
-
-    // Read KV state
-    let state = { fetches: 0, foundDates: false };
-    const storedState = await env.STATE.get('daily_stats', 'json');
-    if (storedState) {
-      state = storedState as { fetches: number, foundDates: boolean };
-    }
-
-    let foundDatesThisRun = false;
-    let errorFetching = false;
-    
+  // 1. HTTP Endpoint for Discord Slash Commands
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
-      // Fetch dates
-      const res = await fetch(API_URL, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      });
-      
-      if (!res.ok) {
-        console.error(`API returned status ${res.status}`);
-        errorFetching = true;
-      } else {
-        const text = await res.text();
-        state.fetches++;
-        
-        // Response is usually `[]` if no dates
-        if (text.trim() !== '[]' && text.trim() !== '') {
-          foundDatesThisRun = true;
-          state.foundDates = true;
-          
-          await sendDiscordDM(env, `🚨 **DATES AVAILABLE!** 🚨\nCheck the ASP portal now! I found something: \`\`\`json\n${text.substring(0, 500)}\n\`\`\``);
-        } else {
-          console.log("No dates found. Response was []");
-        }
+      if (request.method !== 'POST') {
+        return new Response('Method Not Allowed', { status: 405 });
       }
-    } catch (error) {
-      console.error("Error fetching dates:", error);
-      errorFetching = true;
+
+      const signature = request.headers.get('x-signature-ed25519');
+      const timestamp = request.headers.get('x-signature-timestamp');
+      const body = await request.clone().text();
+
+      if (!signature || !timestamp || !env.DISCORD_PUBLIC_KEY) {
+        return new Response('Bad request signature', { status: 401 });
+      }
+
+      const isValidRequest = verifyKey(body, signature, timestamp, env.DISCORD_PUBLIC_KEY);
+      if (!isValidRequest) {
+        return new Response('Bad request signature', { status: 401 });
+      }
+
+      const interaction = JSON.parse(body);
+
+      // Respond to Discord verification ping
+      if (interaction.type === InteractionType.PING) {
+        return new Response(JSON.stringify({ type: InteractionResponseType.PONG }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Handle Slash Commands
+      if (interaction.type === InteractionType.APPLICATION_COMMAND) {
+        const command = interaction.data.name;
+        let state: AppState = (await env.STATE.get('daily_stats', 'json')) || {
+          target_url: null,
+          url_type: null,
+          is_scraping: true,
+          fetches_today: 0,
+          found_dates_today: false
+        };
+
+        let replyMessage = "Command executed.";
+
+        if (command === 'set') {
+          const urlOption = interaction.data.options.find((o: any) => o.name === 'url');
+          if (urlOption) {
+            const url = urlOption.value;
+            state.target_url = url;
+            if (url.includes('/api/fod/request/')) {
+              state.url_type = 'booking';
+              replyMessage = `✅ Target URL set. Type detected: **Booking Check**. I will stop scraping when an appointment is found.`;
+            } else if (url.includes('/api/qmatic/dates/')) {
+              state.url_type = 'dates';
+              replyMessage = `✅ Target URL set. Type detected: **Available Dates**. I will notify you when dates appear.`;
+            } else {
+              state.url_type = 'dates'; // Fallback
+              replyMessage = `⚠️ Target URL set, but type couldn't be automatically detected. Defaulting to 'dates'.`;
+            }
+          }
+        } 
+        else if (command === 'toggle') {
+          const statusOption = interaction.data.options.find((o: any) => o.name === 'status');
+          if (statusOption) {
+            state.is_scraping = statusOption.value;
+            replyMessage = `Scraping is now **${state.is_scraping ? 'ON' : 'OFF'}**.`;
+          }
+        }
+        else if (command === 'status') {
+          replyMessage = `📊 **ASP Checker Status** 📊\n` +
+                         `- Running: **${state.is_scraping ? 'YES' : 'NO'}**\n` +
+                         `- Target URL: ${state.target_url ? \`\n<${state.target_url}>\` : 'None'}\n` +
+                         `- URL Type: **${state.url_type}**\n` +
+                         `- Fetches today: **${state.fetches_today}**`;
+        }
+        else if (command === 'fetch') {
+          if (!state.target_url) {
+            replyMessage = "❌ No target URL set. Use `/set` first.";
+          } else {
+            // Because Discord requires a response within 3 seconds, we use `ctx.waitUntil` for the heavy work.
+            ctx.waitUntil(
+              performScrape(env, state).then((newState) => {
+                env.STATE.put('daily_stats', JSON.stringify(newState));
+              })
+            );
+            replyMessage = "Fetching right now in the background! You will receive a DM if anything is found.";
+          }
+        }
+
+        // Save state changes (except for fetch, which is handled asynchronously above)
+        if (command !== 'fetch') {
+          await env.STATE.put('daily_stats', JSON.stringify(state));
+        }
+
+        return new Response(JSON.stringify({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content: replyMessage }
+        }), { headers: { 'Content-Type': 'application/json' } });
+      }
+
+      return new Response('Unknown command', { status: 400 });
+
+    } catch (error: any) {
+      console.error("Fetch Error:", error);
+      await sendDiscordDM(env, `💥 **CRASH REPORT (HTTP)** 💥\n\`\`\`\n${error.stack || error.message}\n\`\`\``);
+      return new Response('Internal Server Error', { status: 500 });
     }
+  },
 
-    // Save updated state
-    await env.STATE.put('daily_stats', JSON.stringify(state));
+  // 2. Cron Execution
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    try {
+      let state: AppState = (await env.STATE.get('daily_stats', 'json')) || {
+        target_url: null,
+        url_type: null,
+        is_scraping: true,
+        fetches_today: 0,
+        found_dates_today: false
+      };
 
-    // If it's exactly 11 PM (23:00 run, minute < 15), send the daily report and reset state
-    if (chisinauHour === 23 && chisinauMinute < 15) {
-      const reportMessage = `📊 **Daily Report (ASP Checker)** 📊\n` +
-                            `- Fetches performed today: **${state.fetches}**\n` +
-                            `- Were any dates found today? **${state.foundDates ? 'YES 🚨' : 'No 😴'}**`;
-      
-      await sendDiscordDM(env, reportMessage);
-      
-      // Reset state for tomorrow
-      await env.STATE.put('daily_stats', JSON.stringify({ fetches: 0, foundDates: false }));
+      if (!state.is_scraping || !state.target_url) {
+        return;
+      }
+
+      state = await performScrape(env, state);
+      await env.STATE.put('daily_stats', JSON.stringify(state));
+
+    } catch (error: any) {
+      console.error("Scheduled Error:", error);
+      await sendDiscordDM(env, `💥 **CRASH REPORT (CRON)** 💥\n\`\`\`\n${error.stack || error.message}\n\`\`\``);
     }
   },
 };

@@ -10,5 +10,8 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "discord-interactions": "^4.4.0"
   }
 }
