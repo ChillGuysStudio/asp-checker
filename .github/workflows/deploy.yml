@@ -3,25 +3,23 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Disable auto-deploy for the main organization repo, but keep it active for forks!
+    if: github.repository != 'ChillGuysStudio/asp-checker'
     name: Deploy
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: '20'
           
-      - name: Install Dependencies
-        run: bun install
+      - name: Install dependencies
+        run: npm install
         
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3

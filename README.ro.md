@@ -4,7 +4,7 @@
 
 Un Cloudflare Worker serverless, ușor și rapid, creat pentru a automatiza verificarea portalului ASP (Agenția Servicii Publice) din Moldova pentru date disponibile la examenele auto sau pentru a verifica dacă cererea de programare a fost acceptată.
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/MaxNoragami/asp-checker)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChillGuysStudio/asp-checker)
 
 Rulează automat în fundal folosind Cloudflare Cron Triggers și te alertează direct prin mesaje private pe Discord.
 

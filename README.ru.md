@@ -4,7 +4,7 @@
 
 Легкий бессерверный скрипт Cloudflare Worker, созданный для автоматической проверки портала ASP Молдовы (Агентство Государственных Услуг) на наличие свободных дат экзаменов по вождению или для отслеживания успешной записи.
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/MaxNoragami/asp-checker)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChillGuysStudio/asp-checker)
 
 Он работает автоматически в фоновом режиме с использованием Cloudflare Cron Triggers и отправляет вам уведомления прямо в личные сообщения Discord.
 
