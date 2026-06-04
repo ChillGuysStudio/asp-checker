@@ -48,14 +48,18 @@ To control the worker and receive DMs, you need to create a simple Discord Bot:
 
 ## 🚀 Setup & Deployment
 
-1. Install dependencies:
+1. Install dependencies (Bun is recommended, but you can also use npm/pnpm/yarn):
    ```bash
    bun install
+   # or
+   npm install
    ```
 
 2. Authenticate with Cloudflare:
    ```bash
    bunx wrangler login
+   # or
+   npx wrangler login
    ```
 
 3. Create the KV Namespace:
@@ -90,3 +94,6 @@ After deploying your worker, you need to tell Discord where to send the `/set` a
    ```
 
 *(For automatic GitHub Actions deployment, ensure you add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` to your repository secrets).*
+
+---
+*Disclaimer: This project has been built using Gemini 3.1 Pro (AI tools).*

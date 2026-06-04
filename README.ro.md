@@ -48,14 +48,18 @@ Pentru a controla worker-ul și a primi mesaje, trebuie să creezi un simplu Bot
 
 ## 🚀 Configurare & Lansare
 
-1. Instalează dependențele:
+1. Instalează dependențele (Bun este recomandat, dar poți folosi și npm/pnpm/yarn):
    ```bash
    bun install
+   # sau
+   npm install
    ```
 
 2. Autentifică-te pe Cloudflare:
    ```bash
    bunx wrangler login
+   # sau
+   npx wrangler login
    ```
 
 3. Creează spațiul KV:
@@ -90,3 +94,6 @@ După ce ai lansat worker-ul, trebuie să îi spui Discord-ului unde să trimit�
    ```
 
 *(Pentru lansare automată prin GitHub Actions, asigură-te că adaugi `CLOUDFLARE_API_TOKEN` și `CLOUDFLARE_ACCOUNT_ID` în secțiunea secrets a repository-ului).*
+
+---
+*Disclaimer: Acest proiect a fost creat folosind Gemini 3.1 Pro (unelte AI).*
