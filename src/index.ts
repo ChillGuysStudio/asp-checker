@@ -76,9 +76,16 @@ async function performScrape(env: Env, state: AppState): Promise<AppState> {
         console.error("Failed to parse booking JSON");
       }
     } else if (state.url_type === 'dates') {
-      if (text.trim() !== '[]' && text.trim() !== '') {
-        state.found_dates_today = true;
-        await sendDiscordDM(env, `🚨 **DATES AVAILABLE!** 🚨\nCheck the ASP portal now! I found something: \`\`\`json\n${text.substring(0, 500)}\n\`\`\``);
+      try {
+        const data = JSON.parse(text);
+        // Valid dates are returned as an array with items. If it's an empty array [], it means no dates.
+        if (Array.isArray(data) && data.length > 0) {
+          state.found_dates_today = true;
+          await sendDiscordDM(env, `🚨 **DATES AVAILABLE!** 🚨\nCheck the ASP portal now! I found something: \`\`\`json\n${JSON.stringify(data).substring(0, 500)}\n\`\`\``);
+        }
+      } catch (e) {
+        console.error("Failed to parse dates JSON. It might be an HTML error page or the wrong URL.");
+        // Do not trigger a false alarm!
       }
     }
 
