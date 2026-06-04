@@ -129,12 +129,13 @@ export default {
       // Handle Slash Commands
       if (interaction.type === InteractionType.APPLICATION_COMMAND) {
         const command = interaction.data.name;
-        let state: AppState = (await env.STATE.get('daily_stats', 'json')) || {
-          target_url: null,
-          url_type: null,
-          is_scraping: true,
-          fetches_today: 0,
-          found_dates_today: false
+        let savedState: any = await env.STATE.get('daily_stats', 'json');
+        let state: AppState = {
+          target_url: savedState?.target_url || null,
+          url_type: savedState?.url_type || null,
+          is_scraping: savedState?.is_scraping ?? true,
+          fetches_today: savedState?.fetches_today ?? 0,
+          found_dates_today: savedState?.found_dates_today ?? false
         };
 
         let replyMessage = "Command executed.";
@@ -143,6 +144,9 @@ export default {
           const urlOption = interaction.data.options.find((o: any) => o.name === 'url');
           if (urlOption) {
             let url = urlOption.value;
+            
+            // Re-enable scraping when a new URL is set
+            state.is_scraping = true;
             
             // Auto-convert frontend booking URL to the API booking URL
             if (url.includes('/cerere/')) {
@@ -216,12 +220,13 @@ export default {
   // 2. Cron Execution
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     try {
-      let state: AppState = (await env.STATE.get('daily_stats', 'json')) || {
-        target_url: null,
-        url_type: null,
-        is_scraping: true,
-        fetches_today: 0,
-        found_dates_today: false
+      let savedState: any = await env.STATE.get('daily_stats', 'json');
+      let state: AppState = {
+        target_url: savedState?.target_url || null,
+        url_type: savedState?.url_type || null,
+        is_scraping: savedState?.is_scraping ?? true,
+        fetches_today: savedState?.fetches_today ?? 0,
+        found_dates_today: savedState?.found_dates_today ?? false
       };
 
       if (!state.is_scraping || !state.target_url) {
