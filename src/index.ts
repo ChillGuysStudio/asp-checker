@@ -68,8 +68,16 @@ async function performScrape(env: Env, state: AppState): Promise<AppState> {
       try {
         const data = JSON.parse(text);
         if (data.hasAppointment === true) {
-          const date = data.appointment?.date || "Unknown Date";
-          await sendDiscordDM(env, `✅ **SUCCESSFUL BOOKING DETECTED!** ✅\nDate: ${date}\nStopping the scraper now.`);
+          let dateStr = "Unknown Date";
+          if (data.serviceRequest?.examinationDate) {
+            const datePart = data.serviceRequest.examinationDate.split('T')[0];
+            const timePart = data.serviceRequest.examinationTime?.time || "";
+            dateStr = `${datePart} ${timePart}`.trim();
+          } else if (data.appointment?.date) {
+            dateStr = data.appointment.date;
+          }
+          
+          await sendDiscordDM(env, `✅ **SUCCESSFUL BOOKING DETECTED!** ✅\nDate: ${dateStr}\nStopping the scraper now.`);
           state.is_scraping = false; // Stop scraping
         }
       } catch (e) {
