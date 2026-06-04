@@ -58,6 +58,8 @@ async function performScrape(env: Env, state: AppState): Promise<AppState> {
 
     if (!res.ok) {
       console.error(`API returned status ${res.status}`);
+      await sendDiscordDM(env, `⚠️ The scraper received a **${res.status}** error.\nScraping has been automatically paused. Please check your URL using \`/status\` or set a new one.`);
+      state.is_scraping = false;
       return state;
     }
 
@@ -97,8 +99,10 @@ async function performScrape(env: Env, state: AppState): Promise<AppState> {
       }
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching URL:", error);
+    await sendDiscordDM(env, `⚠️ **Network Error!** Failed to fetch the URL.\n\`${error.message}\`\nScraping has been automatically paused.`);
+    state.is_scraping = false;
   }
 
   return state;
@@ -153,16 +157,19 @@ export default {
           if (urlOption) {
             let url = urlOption.value;
             
-            // Re-enable scraping when a new URL is set
-            state.is_scraping = true;
-            
-            // Auto-convert frontend booking URL to the API booking URL
-            if (url.includes('/cerere/')) {
-              url = url.replace('/cerere/', '/api/fod/request/');
-              state.target_url = url;
-              state.url_type = 'booking';
-              replyMessage = `✅ I noticed you pasted the frontend URL! I've automatically converted it to the **Booking API**:\n<${url}>\nI will stop scraping when an appointment is found.`;
-            } else if (url.includes('/api/fod/request/')) {
+            if (!url.includes('eservicii.gov.md')) {
+              replyMessage = `❌ **Invalid URL!** The URL must belong to \`eservicii.gov.md\`. Scraping was not updated.`;
+            } else {
+              // Re-enable scraping when a new URL is set
+              state.is_scraping = true;
+              
+              // Auto-convert frontend booking URL to the API booking URL
+              if (url.includes('/cerere/')) {
+                url = url.replace('/cerere/', '/api/fod/request/');
+                state.target_url = url;
+                state.url_type = 'booking';
+                replyMessage = `✅ I noticed you pasted the frontend URL! I've automatically converted it to the **Booking API**:\n<${url}>\nI will stop scraping when an appointment is found.`;
+              } else if (url.includes('/api/fod/request/')) {
               state.target_url = url;
               state.url_type = 'booking';
               replyMessage = `✅ Target URL set. Type detected: **Booking Check**. I will stop scraping when an appointment is found.`;
@@ -175,6 +182,7 @@ export default {
               state.url_type = 'dates'; // Fallback
               replyMessage = `⚠️ Target URL set, but type couldn't be automatically detected. Defaulting to 'dates'.`;
             }
+          }
           }
         } 
         else if (command === 'toggle') {
