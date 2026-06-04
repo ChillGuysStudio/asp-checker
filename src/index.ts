@@ -105,7 +105,7 @@ export default {
         return new Response('Bad request signature', { status: 401 });
       }
 
-      const isValidRequest = verifyKey(body, signature, timestamp, env.DISCORD_PUBLIC_KEY);
+      const isValidRequest = await verifyKey(body, signature, timestamp, env.DISCORD_PUBLIC_KEY);
       if (!isValidRequest) {
         return new Response('Bad request signature', { status: 401 });
       }
