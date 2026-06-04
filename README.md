@@ -1,7 +1,8 @@
 # 🚗 ASP Checker
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/MaxNoragami/asp-checker)
 A lightweight, serverless Cloudflare Worker built to automate scraping and checking the Moldovan ASP (Agentia Servicii Publice) portal for available driving exam dates or successful booking requests. 
+
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/MaxNoragami/asp-checker)
 
 It runs automatically in the background using Cloudflare Cron Triggers and alerts you directly via Discord DMs.
 
@@ -26,6 +27,22 @@ It runs automatically in the background using Cloudflare Cron Triggers and alert
 - **Deployment**: [Cloudflare Workers](https://workers.cloudflare.com/)
 - **State Management**: Cloudflare KV
 - **Language**: TypeScript
+
+## 👾 Discord Bot Setup
+
+To control the worker and receive DMs, you need to create a simple Discord Bot:
+
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
+2. Click **New Application** and name it "ASP Checker".
+3. Under the **Bot** tab, click **Reset Token** and copy the **Token**. This is your `DISCORD_BOT_TOKEN`.
+4. Go to the **General Information** tab and copy your **Application ID** and **Public Key**.
+5. Add the bot to your server:
+   - Go to **OAuth2 > URL Generator**.
+   - Check the `bot` scope.
+   - Copy the URL, open it in your browser, and add the bot to your private server.
+6. Find your own Discord User ID:
+   - In Discord, go to Settings > Advanced > Enable "Developer Mode".
+   - Right-click your profile picture in any server and click **Copy User ID**. This is your `DISCORD_USER_ID`.
 
 ## 🚀 Setup & Deployment
 
@@ -56,6 +73,18 @@ It runs automatically in the background using Cloudflare Cron Triggers and alert
 5. Deploy!
    ```bash
    bunx wrangler deploy
+   ```
+
+## 🔌 Connecting Discord Slash Commands
+
+After deploying your worker, you need to tell Discord where to send the `/set` and `/fetch` commands.
+
+1. Copy the public URL that `wrangler deploy` gave you (e.g., `https://asp-checker.<username>.workers.dev`).
+2. Go back to the [Discord Developer Portal](https://discord.com/developers/applications) > **General Information**.
+3. Paste the URL into the **Interactions Endpoint URL** field and save. Discord will send a ping to verify it.
+4. Finally, register the slash commands to your bot by running this locally:
+   ```bash
+   DISCORD_BOT_TOKEN="your-bot-token" DISCORD_APPLICATION_ID="your-app-id" bun run register_commands.ts
    ```
 
 *(For automatic GitHub Actions deployment, ensure you add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` to your repository secrets).*
