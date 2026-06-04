@@ -159,7 +159,7 @@ export default {
         else if (command === 'status') {
           replyMessage = `📊 **ASP Checker Status** 📊\n` +
                          `- Running: **${state.is_scraping ? 'YES' : 'NO'}**\n` +
-                         `- Target URL: ${state.target_url ? \`\n<${state.target_url}>\` : 'None'}\n` +
+                         `- Target URL: ${state.target_url ? `\n<${state.target_url}>` : 'None'}\n` +
                          `- URL Type: **${state.url_type}**\n` +
                          `- Fetches today: **${state.fetches_today}**`;
         }
