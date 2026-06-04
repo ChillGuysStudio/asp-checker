@@ -182,6 +182,14 @@ export default {
               state.url_type = 'dates'; // Fallback
               replyMessage = `⚠️ Target URL set, but type couldn't be automatically detected. Defaulting to 'dates'.`;
             }
+            
+            // Perform an initial fetch immediately in the background
+            replyMessage += `\n\n*Fetching right now in the background! You will receive a DM if anything is found.*`;
+            ctx.waitUntil(
+              performScrape(env, state).then(async (newState) => {
+                await env.STATE.put('daily_stats', JSON.stringify(newState));
+              })
+            );
           }
           }
         } 
