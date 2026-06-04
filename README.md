@@ -1,5 +1,6 @@
 # 🚗 ASP Checker
 
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/MaxNoragami/asp-checker)
 A lightweight, serverless Cloudflare Worker built to automate scraping and checking the Moldovan ASP (Agentia Servicii Publice) portal for available driving exam dates or successful booking requests. 
 
 It runs automatically in the background using Cloudflare Cron Triggers and alerts you directly via Discord DMs.
