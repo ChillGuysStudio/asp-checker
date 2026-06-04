@@ -198,6 +198,15 @@ export default {
           if (statusOption) {
             state.is_scraping = statusOption.value;
             replyMessage = `Scraping is now **${state.is_scraping ? 'ON' : 'OFF'}**.`;
+            
+            if (state.is_scraping && state.target_url) {
+              replyMessage += `\n\n*Fetching right now in the background! You will receive a DM if anything is found.*`;
+              ctx.waitUntil(
+                performScrape(env, state).then(async (newState) => {
+                  await env.STATE.put('daily_stats', JSON.stringify(newState));
+                })
+              );
+            }
           }
         }
         else if (command === 'status') {
