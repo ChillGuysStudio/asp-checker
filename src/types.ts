@@ -12,4 +12,5 @@ export interface AppState {
   is_scraping: boolean;
   fetches_today: number;
   found_dates_today: boolean;
+  last_notified_dates?: string | null;
 }

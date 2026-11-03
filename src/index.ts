@@ -42,7 +42,8 @@ export default {
           url_type: savedState?.url_type || null,
           is_scraping: savedState?.is_scraping ?? true,
           fetches_today: savedState?.fetches_today ?? 0,
-          found_dates_today: savedState?.found_dates_today ?? false
+          found_dates_today: savedState?.found_dates_today ?? false,
+          last_notified_dates: savedState?.last_notified_dates || null
         };
 
         let replyMessage = "Command executed.";
@@ -55,19 +56,20 @@ export default {
             if (!url.includes('eservicii.gov.md')) {
               replyMessage = `❌ **Invalid URL!** The URL must belong to \`eservicii.gov.md\`. Scraping was not updated.`;
             } else {
-              // Re-enable scraping when a new URL is set
+              // Re-enable scraping when a new URL is set and clear previous date cache
               state.is_scraping = true;
+              state.last_notified_dates = null;
               
               // Auto-convert frontend booking URL to the API booking URL
               if (url.includes('/cerere/')) {
                 url = url.replace('/cerere/', '/api/fod/request/');
                 state.target_url = url;
                 state.url_type = 'booking';
-                replyMessage = `✅ I noticed you pasted the frontend URL! I've automatically converted it to the **Booking API**:\n<${url}>\nI will stop scraping when an appointment is found.`;
+                replyMessage = `✅ Target URL set from your application link! I will monitor available calendar dates and alert you if an appointment is found.`;
               } else if (url.includes('/api/fod/request/')) {
                 state.target_url = url;
                 state.url_type = 'booking';
-                replyMessage = `✅ Target URL set. Type detected: **Booking Check**. I will stop scraping when an appointment is found.`;
+                replyMessage = `✅ Target URL set. Type detected: **Application & Dates**. I will monitor available calendar dates and alert you if an appointment is found.`;
               } else if (url.includes('/api/qmatic/dates/')) {
                 state.target_url = url;
                 state.url_type = 'dates';
@@ -79,9 +81,9 @@ export default {
               }
               
               // Perform an initial fetch immediately in the background
-              replyMessage += `\n\n*Fetching right now in the background! You will receive a DM if anything is found.*`;
+              replyMessage += `\n\n*Fetching right now in the background! You will receive a DM shortly.*`;
               ctx.waitUntil(
-                performScrape(env, state).then(async (newState) => {
+                performScrape(env, state, true).then(async (newState) => {
                   await env.STATE.put('daily_stats', JSON.stringify(newState));
                 })
               );
@@ -95,9 +97,9 @@ export default {
             replyMessage = `Scraping is now **${state.is_scraping ? 'ON' : 'OFF'}**.`;
             
             if (state.is_scraping && state.target_url) {
-              replyMessage += `\n\n*Fetching right now in the background! You will receive a DM if anything is found.*`;
+              replyMessage += `\n\n*Fetching right now in the background! You will receive a DM shortly.*`;
               ctx.waitUntil(
-                performScrape(env, state).then(async (newState) => {
+                performScrape(env, state, true).then(async (newState) => {
                   await env.STATE.put('daily_stats', JSON.stringify(newState));
                 })
               );
@@ -117,11 +119,11 @@ export default {
           } else {
             // Because Discord requires a response within 3 seconds, we use `ctx.waitUntil` for the heavy work.
             ctx.waitUntil(
-              performScrape(env, state).then(async (newState) => {
+              performScrape(env, state, true).then(async (newState) => {
                 await env.STATE.put('daily_stats', JSON.stringify(newState));
               })
             );
-            replyMessage = "Fetching right now in the background! You will receive a DM if anything is found.";
+            replyMessage = "Fetching right now in the background! You will receive a DM shortly with the results.";
           }
         }
 
@@ -154,14 +156,15 @@ export default {
         url_type: savedState?.url_type || null,
         is_scraping: savedState?.is_scraping ?? true,
         fetches_today: savedState?.fetches_today ?? 0,
-        found_dates_today: savedState?.found_dates_today ?? false
+        found_dates_today: savedState?.found_dates_today ?? false,
+        last_notified_dates: savedState?.last_notified_dates || null
       };
 
       if (!state.is_scraping || !state.target_url) {
         return;
       }
 
-      state = await performScrape(env, state);
+      state = await performScrape(env, state, false);
       await env.STATE.put('daily_stats', JSON.stringify(state));
 
     } catch (error: any) {
