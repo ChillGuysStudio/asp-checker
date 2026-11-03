@@ -1,5 +1,6 @@
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const APP_ID = process.env.DISCORD_APPLICATION_ID;
+const GUILD_ID = process.env.DISCORD_GUILD_ID;
 
 if (!BOT_TOKEN || !APP_ID) {
   console.error("Missing DISCORD_BOT_TOKEN or DISCORD_APPLICATION_ID in environment variables");
@@ -87,7 +88,11 @@ const commands = [
 ];
 
 async function registerCommands() {
-  const response = await fetch(`https://discord.com/api/v10/applications/${APP_ID}/commands`, {
+  const endpoint = GUILD_ID
+    ? `https://discord.com/api/v10/applications/${APP_ID}/guilds/${GUILD_ID}/commands`
+    : `https://discord.com/api/v10/applications/${APP_ID}/commands`;
+
+  const response = await fetch(endpoint, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -97,7 +102,11 @@ async function registerCommands() {
   });
 
   if (response.ok) {
-    console.log("Successfully registered global slash commands.");
+    if (GUILD_ID) {
+      console.log(`Successfully registered guild slash commands (instant update for guild ${GUILD_ID}).`);
+    } else {
+      console.log("Successfully registered global slash commands (may take up to 1 hour to propagate).");
+    }
   } else {
     console.error("Failed to register commands:", await response.text());
   }
