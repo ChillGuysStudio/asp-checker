@@ -18,9 +18,10 @@ It runs automatically in the background using Cloudflare Cron Triggers and alert
 
 ## 🤖 Discord Commands
 
-- `/set [url]` - Sets the target URL to monitor every 30 minutes. **Note:** You should set the URL to the online "cerere" link that looks something like `https://eservicii.gov.md/asp/dimtcca/cerere/booking_code/some_id`. The bot will automatically convert it to the correct hidden API endpoint!
-- `/fetch` - Forces an immediate check right now.
-- `/status` - Displays the current active URL, running status, and today's fetch count.
+- `/set [url] [month]` - Sets the target URL to monitor every 30 minutes, with an optional month filter (defaults to All Months). **Note:** You should set the URL to the online "cerere" link that looks something like `https://eservicii.gov.md/asp/dimtcca/cerere/booking_code/some_id`. The bot will automatically query available calendar dates and monitor booking status!
+- `/fetch [month]` - Forces an immediate check right now. You can optionally specify a month to filter dates for this fetch.
+- `/month [month]` - Updates the monitored month filter for background checks (or select "All Months").
+- `/status` - Displays the current active URL, monitored month, running status, and today's fetch count.
 - `/toggle [True/False]` - Manually turn the background scraper on or off.
 
 ## 🛠 Tech Stack

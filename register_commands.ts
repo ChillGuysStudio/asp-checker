@@ -6,22 +6,67 @@ if (!BOT_TOKEN || !APP_ID) {
   process.exit(1);
 }
 
+const MONTH_CHOICES = [
+  { name: 'All Months', value: 'all' },
+  { name: 'January', value: '01' },
+  { name: 'February', value: '02' },
+  { name: 'March', value: '03' },
+  { name: 'April', value: '04' },
+  { name: 'May', value: '05' },
+  { name: 'June', value: '06' },
+  { name: 'July', value: '07' },
+  { name: 'August', value: '08' },
+  { name: 'September', value: '09' },
+  { name: 'October', value: '10' },
+  { name: 'November', value: '11' },
+  { name: 'December', value: '12' },
+];
+
 const commands = [
   {
     name: 'set',
-    description: 'Set the target URL for the ASP Checker to monitor every 30 minutes',
+    description: 'Set target URL and optional month filter to monitor every 30 minutes',
     options: [
       {
         type: 3, // STRING
         name: 'url',
         description: 'The URL to check (either the dates API or the booking request API)',
         required: true,
+      },
+      {
+        type: 3, // STRING
+        name: 'month',
+        description: 'Filter dates by month (defaults to All Months)',
+        required: false,
+        choices: MONTH_CHOICES
       }
     ]
   },
   {
     name: 'fetch',
-    description: 'Force an immediate fetch of the target URL right now',
+    description: 'Force an immediate fetch right now (with optional month filter)',
+    options: [
+      {
+        type: 3, // STRING
+        name: 'month',
+        description: 'Filter dates by month for this fetch (optional)',
+        required: false,
+        choices: MONTH_CHOICES
+      }
+    ]
+  },
+  {
+    name: 'month',
+    description: 'Update the monitored month filter for background checks',
+    options: [
+      {
+        type: 3, // STRING
+        name: 'month',
+        description: 'The month to filter for (or All Months)',
+        required: true,
+        choices: MONTH_CHOICES
+      }
+    ]
   },
   {
     name: 'toggle',
@@ -37,7 +82,7 @@ const commands = [
   },
   {
     name: 'status',
-    description: 'View the current active URL and scraping status',
+    description: 'View the current active URL, month filter, and scraping status',
   }
 ];
 

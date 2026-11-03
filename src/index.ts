@@ -1,7 +1,7 @@
 import { verifyKey, InteractionType, InteractionResponseType } from 'discord-interactions';
 import type { Env, AppState } from './types';
 import { sendDiscordDM } from './discord';
-import { performScrape } from './scraper';
+import { performScrape, MONTH_NAMES } from './scraper';
 
 export default {
   // 1. HTTP Endpoint for Discord Slash Commands
@@ -43,13 +43,14 @@ export default {
           is_scraping: savedState?.is_scraping ?? true,
           fetches_today: savedState?.fetches_today ?? 0,
           found_dates_today: savedState?.found_dates_today ?? false,
-          last_notified_dates: savedState?.last_notified_dates || null
+          last_notified_dates: savedState?.last_notified_dates || null,
+          target_month: savedState?.target_month || null
         };
 
         let replyMessage = "Command executed.";
 
         if (command === 'set') {
-          const urlOption = interaction.data.options.find((o: any) => o.name === 'url');
+          const urlOption = interaction.data.options?.find((o: any) => o.name === 'url');
           if (urlOption) {
             let url = urlOption.value;
             
@@ -59,25 +60,34 @@ export default {
               // Re-enable scraping when a new URL is set and clear previous date cache
               state.is_scraping = true;
               state.last_notified_dates = null;
+
+              // Parse optional month filter
+              const monthOption = interaction.data.options?.find((o: any) => o.name === 'month');
+              if (monthOption) {
+                state.target_month = monthOption.value === 'all' ? null : monthOption.value;
+              } else {
+                state.target_month = null;
+              }
+              const monthLabel = state.target_month ? (MONTH_NAMES[state.target_month] || state.target_month) : 'All Months';
               
               // Auto-convert frontend booking URL to the API booking URL
               if (url.includes('/cerere/')) {
                 url = url.replace('/cerere/', '/api/fod/request/');
                 state.target_url = url;
                 state.url_type = 'booking';
-                replyMessage = `✅ Target URL set from your application link! I will monitor available calendar dates and alert you if an appointment is found.`;
+                replyMessage = `✅ Target URL set from your application link!\n- Monitored Month: **${monthLabel}**\nI will monitor available calendar dates and alert you if an appointment is found.`;
               } else if (url.includes('/api/fod/request/')) {
                 state.target_url = url;
                 state.url_type = 'booking';
-                replyMessage = `✅ Target URL set. Type detected: **Application & Dates**. I will monitor available calendar dates and alert you if an appointment is found.`;
+                replyMessage = `✅ Target URL set. Type detected: **Application & Dates**.\n- Monitored Month: **${monthLabel}**\nI will monitor available calendar dates and alert you if an appointment is found.`;
               } else if (url.includes('/api/qmatic/dates/')) {
                 state.target_url = url;
                 state.url_type = 'dates';
-                replyMessage = `✅ Target URL set. Type detected: **Available Dates**. I will notify you when dates appear.`;
+                replyMessage = `✅ Target URL set. Type detected: **Available Dates**.\n- Monitored Month: **${monthLabel}**\nI will notify you when dates appear.`;
               } else {
                 state.target_url = url;
                 state.url_type = 'dates'; // Fallback
-                replyMessage = `⚠️ Target URL set, but type couldn't be automatically detected. Defaulting to 'dates'.`;
+                replyMessage = `⚠️ Target URL set, but type couldn't be automatically detected.\n- Monitored Month: **${monthLabel}**\nDefaulting to 'dates'.`;
               }
               
               // Perform an initial fetch immediately in the background
@@ -90,8 +100,26 @@ export default {
             }
           }
         } 
+        else if (command === 'month') {
+          const monthOption = interaction.data.options?.find((o: any) => o.name === 'month');
+          if (monthOption) {
+            state.target_month = monthOption.value === 'all' ? null : monthOption.value;
+            state.last_notified_dates = null; // Clear cache so new month triggers notification
+            const monthLabel = state.target_month ? (MONTH_NAMES[state.target_month] || state.target_month) : 'All Months';
+            replyMessage = `📅 Monitored month updated to **${monthLabel}**.`;
+            
+            if (state.target_url && state.is_scraping) {
+              replyMessage += `\n\n*Fetching right now in the background! You will receive a DM shortly.*`;
+              ctx.waitUntil(
+                performScrape(env, state, true).then(async (newState) => {
+                  await env.STATE.put('daily_stats', JSON.stringify(newState));
+                })
+              );
+            }
+          }
+        }
         else if (command === 'toggle') {
-          const statusOption = interaction.data.options.find((o: any) => o.name === 'status');
+          const statusOption = interaction.data.options?.find((o: any) => o.name === 'status');
           if (statusOption) {
             state.is_scraping = statusOption.value;
             replyMessage = `Scraping is now **${state.is_scraping ? 'ON' : 'OFF'}**.`;
@@ -107,28 +135,35 @@ export default {
           }
         }
         else if (command === 'status') {
+          const monthLabel = state.target_month ? (MONTH_NAMES[state.target_month] || state.target_month) : 'All Months';
           replyMessage = `📊 **ASP Checker Status** 📊\n` +
                          `- Running: **${state.is_scraping ? 'YES' : 'NO'}**\n` +
                          `- Target URL: ${state.target_url ? `\n<${state.target_url}>` : 'None'}\n` +
                          `- URL Type: **${state.url_type}**\n` +
+                         `- Monitored Month: **${monthLabel}**\n` +
                          `- Fetches today: **${state.fetches_today}**`;
         }
         else if (command === 'fetch') {
           if (!state.target_url) {
             replyMessage = "❌ No target URL set. Use `/set` first.";
           } else {
+            const monthOption = interaction.data.options?.find((o: any) => o.name === 'month');
+            const fetchMonth = monthOption ? (monthOption.value === 'all' ? null : monthOption.value) : undefined;
+            const effectiveMonth = fetchMonth !== undefined ? fetchMonth : state.target_month;
+            const monthLabel = effectiveMonth ? (MONTH_NAMES[effectiveMonth] || effectiveMonth) : 'All Months';
+
             // Because Discord requires a response within 3 seconds, we use `ctx.waitUntil` for the heavy work.
             ctx.waitUntil(
-              performScrape(env, state, true).then(async (newState) => {
+              performScrape(env, state, true, fetchMonth).then(async (newState) => {
                 await env.STATE.put('daily_stats', JSON.stringify(newState));
               })
             );
-            replyMessage = "Fetching right now in the background! You will receive a DM shortly with the results.";
+            replyMessage = `Fetching right now in the background (Filter: **${monthLabel}**)! You will receive a DM shortly with the results.`;
           }
         }
 
         // Save state changes only if a modifying command was called
-        if (command === 'set' || command === 'toggle') {
+        if (command === 'set' || command === 'toggle' || command === 'month') {
           await env.STATE.put('daily_stats', JSON.stringify(state));
         }
 
@@ -157,7 +192,8 @@ export default {
         is_scraping: savedState?.is_scraping ?? true,
         fetches_today: savedState?.fetches_today ?? 0,
         found_dates_today: savedState?.found_dates_today ?? false,
-        last_notified_dates: savedState?.last_notified_dates || null
+        last_notified_dates: savedState?.last_notified_dates || null,
+        target_month: savedState?.target_month || null
       };
 
       if (!state.is_scraping || !state.target_url) {

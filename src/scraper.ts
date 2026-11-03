@@ -1,10 +1,45 @@
 import type { Env, AppState } from './types';
 import { sendDiscordDM } from './discord';
 
-export async function performScrape(env: Env, state: AppState, isManual: boolean = false): Promise<AppState> {
+export const MONTH_NAMES: Record<string, string> = {
+  '01': 'January',
+  '02': 'February',
+  '03': 'March',
+  '04': 'April',
+  '05': 'May',
+  '06': 'June',
+  '07': 'July',
+  '08': 'August',
+  '09': 'September',
+  '10': 'October',
+  '11': 'November',
+  '12': 'December',
+};
+
+function filterDatesByMonth(datesList: any[], month: string | null): any[] {
+  if (!month || month === 'all') return datesList;
+  return datesList.filter((d: any) => {
+    const dateStr = d.date || d;
+    if (typeof dateStr !== 'string') return false;
+    const parts = dateStr.split('-');
+    const m = parts[1];
+    if (!m) return false;
+    return m === month || parseInt(m, 10) === parseInt(month, 10);
+  });
+}
+
+export async function performScrape(
+  env: Env,
+  state: AppState,
+  isManual: boolean = false,
+  monthOverride?: string | null
+): Promise<AppState> {
   if (!state.target_url) {
     return state;
   }
+
+  const targetMonth = monthOverride !== undefined ? monthOverride : (state.target_month || null);
+  const monthLabel = targetMonth ? (MONTH_NAMES[targetMonth] || `Month ${targetMonth}`) : null;
 
   try {
     const res = await fetch(state.target_url, {
@@ -67,35 +102,48 @@ export async function performScrape(env: Env, state: AppState, isManual: boolean
           });
 
           if (datesRes.ok) {
-            const dates: any = await datesRes.json();
-            if (Array.isArray(dates) && dates.length > 0) {
-              state.found_dates_today = true;
-              const datesKey = dates.map((d: any) => `${d.date}:${d.timeSlots ?? 0}`).join(',');
+            const allDates: any = await datesRes.json();
+            const dates = Array.isArray(allDates) ? allDates : [];
+            const filteredDates = filterDatesByMonth(dates, targetMonth);
 
-              // Alert on manual fetch OR when the available dates changed since last notification
+            if (filteredDates.length > 0) {
+              state.found_dates_today = true;
+              const datesKey = `${targetMonth || 'all'}:${filteredDates.map((d: any) => `${d.date}:${d.timeSlots ?? 0}`).join(',')}`;
+
+              // Alert on manual fetch OR when the filtered dates changed since last notification
               if (isManual || state.last_notified_dates !== datesKey) {
                 state.last_notified_dates = datesKey;
 
-                let dateLines = dates
+                let dateLines = filteredDates
                   .slice(0, 20)
                   .map((d: any) => `- 📅 **${d.date}**${d.timeSlots != null ? ` (${d.timeSlots} slots)` : ''}`)
                   .join('\n');
 
-                if (dates.length > 20) {
-                  dateLines += `\n... and ${dates.length - 20} more dates`;
+                if (filteredDates.length > 20) {
+                  dateLines += `\n... and ${filteredDates.length - 20} more dates`;
                 }
 
                 const portalUrl = `https://eservicii.gov.md/asp/dimtcca/cerere/${data.type?.code || 'APO01'}/${data.id}`;
+                const header = monthLabel
+                  ? `🚨 **DATES AVAILABLE (${monthLabel})!** 🚨\nFound **${filteredDates.length}** open date(s) in **${monthLabel}** on the ASP portal:`
+                  : `🚨 **DATES AVAILABLE!** 🚨\nFound **${filteredDates.length}** open date(s) on the ASP portal:`;
 
                 await sendDiscordDM(
                   env,
-                  `🚨 **DATES AVAILABLE!** 🚨\nFound **${dates.length}** open date(s) on the ASP portal:\n${dateLines}\n\n👉 [Open Application on ASP Portal](<${portalUrl}>)`
+                  `${header}\n${dateLines}\n\n👉 [Open Application on ASP Portal](<${portalUrl}>)`
                 );
               }
             } else {
               state.last_notified_dates = null;
               if (isManual) {
-                await sendDiscordDM(env, `ℹ️ **ASP Checker**: No available dates found at this moment.`);
+                if (monthLabel) {
+                  const extraNote = dates.length > 0
+                    ? `\n*(Note: Found ${dates.length} date(s) in other months, but none in ${monthLabel})*`
+                    : '';
+                  await sendDiscordDM(env, `ℹ️ **ASP Checker**: No available dates found for **${monthLabel}** at this moment.${extraNote}`);
+                } else {
+                  await sendDiscordDM(env, `ℹ️ **ASP Checker**: No available dates found at this moment.`);
+                }
               }
             }
           } else {
@@ -114,28 +162,41 @@ export async function performScrape(env: Env, state: AppState, isManual: boolean
     } else if (state.url_type === 'dates') {
       try {
         const data = JSON.parse(text);
-        // Valid dates are returned as an array with items. If it's an empty array [], it means no dates.
-        if (Array.isArray(data) && data.length > 0) {
+        const dates = Array.isArray(data) ? data : [];
+        const filteredDates = filterDatesByMonth(dates, targetMonth);
+
+        if (filteredDates.length > 0) {
           state.found_dates_today = true;
-          const datesKey = JSON.stringify(data);
+          const datesKey = `${targetMonth || 'all'}:${JSON.stringify(filteredDates)}`;
 
           if (isManual || state.last_notified_dates !== datesKey) {
             state.last_notified_dates = datesKey;
-            let dateLines = data
+            let dateLines = filteredDates
               .slice(0, 20)
               .map((d: any) => `- 📅 **${d.date || d}**${d.timeSlots != null ? ` (${d.timeSlots} slots)` : ''}`)
               .join('\n');
 
-            if (data.length > 20) {
-              dateLines += `\n... and ${data.length - 20} more dates`;
+            if (filteredDates.length > 20) {
+              dateLines += `\n... and ${filteredDates.length - 20} more dates`;
             }
 
-            await sendDiscordDM(env, `🚨 **DATES AVAILABLE!** 🚨\nCheck the ASP portal now! I found dates:\n${dateLines}`);
+            const header = monthLabel
+              ? `🚨 **DATES AVAILABLE (${monthLabel})!** 🚨\nCheck the ASP portal now! Found dates in **${monthLabel}**:`
+              : `🚨 **DATES AVAILABLE!** 🚨\nCheck the ASP portal now! I found dates:`;
+
+            await sendDiscordDM(env, `${header}\n${dateLines}`);
           }
         } else {
           state.last_notified_dates = null;
           if (isManual) {
-            await sendDiscordDM(env, `ℹ️ **ASP Checker**: No available dates found at this moment.`);
+            if (monthLabel) {
+              const extraNote = dates.length > 0
+                ? `\n*(Note: Found ${dates.length} date(s) in other months, but none in ${monthLabel})*`
+                : '';
+              await sendDiscordDM(env, `ℹ️ **ASP Checker**: No available dates found for **${monthLabel}** at this moment.${extraNote}`);
+            } else {
+              await sendDiscordDM(env, `ℹ️ **ASP Checker**: No available dates found at this moment.`);
+            }
           }
         }
       } catch (e) {
