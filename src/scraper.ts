@@ -57,8 +57,10 @@ async function notifyEditDates(
 
   // Remember dates that are still available and were alerted on, now or earlier. Dates hidden by a
   // one-off /fetch month filter are left out so they can still trigger an alert later.
-  const notified = new Set([...cached, ...shown.map((d: any) => d.date)]);
-  state.last_notified_dates = dates.map((d: any) => d.date).filter((d: string) => notified.has(d)).join(',') || null;
+  const remember = (notified: Set<string>) => {
+    state.last_notified_dates = dates.map((d: any) => d.date).filter((d: string) => notified.has(d)).join(',') || null;
+  };
+  remember(cached);
 
   if (matching.length > 0) state.found_dates_today = true;
 
@@ -86,7 +88,10 @@ async function notifyEditDates(
     : `ℹ️ **ASP Checker**: No new dates since the last alert. Still available${scope}:`;
   const editUrl = `https://eservicii.gov.md/asp/dimtcca/cerere/${data.type?.code || 'APO01'}/Edit/${data.id}`;
 
-  await sendDiscordDM(env, `${header}\n${dateLines}\n\n${current}\n👉 [Change Date on ASP Portal](<${editUrl}>)`);
+  const delivered = await sendDiscordDM(env, `${header}\n${dateLines}\n\n${current}\n👉 [Change Date on ASP Portal](<${editUrl}>)`);
+
+  // An undelivered alert stays uncached so the next check tries again.
+  if (delivered) remember(new Set([...cached, ...shown.map((d: any) => d.date)]));
 }
 
 export async function performScrape(
