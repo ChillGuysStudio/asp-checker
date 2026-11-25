@@ -28,6 +28,67 @@ function filterDatesByMonth(datesList: any[], month: string | null): any[] {
   });
 }
 
+function formatAppointment(data: any): string {
+  if (data.serviceRequest?.examinationDate) {
+    const datePart = data.serviceRequest.examinationDate.split('T')[0];
+    const timePart = data.serviceRequest.examinationTime?.time || "";
+    return `${datePart} ${timePart}`.trim();
+  }
+  return data.appointment?.date || "Unknown Date";
+}
+
+/**
+ * Edit mode: alert only for dates that are not in the cache yet. Slot-count changes and dates
+ * disappearing stay silent; a date that disappears and later comes back counts as new again.
+ */
+async function notifyEditDates(
+  env: Env,
+  state: AppState,
+  data: any,
+  dates: any[],
+  targetMonth: string | null,
+  monthLabel: string | null,
+  isManual: boolean
+): Promise<void> {
+  const cached = new Set((state.last_notified_dates || '').split(',').filter(Boolean));
+  const matching = filterDatesByMonth(dates, targetMonth);
+  const fresh = matching.filter((d: any) => !cached.has(d.date));
+  const shown = isManual ? matching : fresh;
+
+  // Remember dates that are still available and were alerted on, now or earlier. Dates hidden by a
+  // one-off /fetch month filter are left out so they can still trigger an alert later.
+  const notified = new Set([...cached, ...shown.map((d: any) => d.date)]);
+  state.last_notified_dates = dates.map((d: any) => d.date).filter((d: string) => notified.has(d)).join(',') || null;
+
+  if (matching.length > 0) state.found_dates_today = true;
+
+  const current = `Your current appointment: **${data.hasAppointment ? formatAppointment(data) : 'none'}**`;
+  const scope = monthLabel ? ` for **${monthLabel}**` : '';
+
+  if (shown.length === 0) {
+    if (isManual) {
+      const extraNote = dates.length > 0 ? `\n*(Note: Found ${dates.length} date(s) in other months)*` : '';
+      await sendDiscordDM(env, `ℹ️ **ASP Checker**: No dates to move your appointment to${scope} at this moment.${extraNote}\n${current}`);
+    }
+    return;
+  }
+
+  let dateLines = shown
+    .slice(0, 20)
+    .map((d: any) => `- ${fresh.includes(d) ? '🆕' : '📅'} **${d.date}**${d.timeSlots != null ? ` (${d.timeSlots} slots)` : ''}`)
+    .join('\n');
+  if (shown.length > 20) {
+    dateLines += `\n... and ${shown.length - 20} more dates`;
+  }
+
+  const header = fresh.length > 0
+    ? `🚨 **NEW DATE(S) TO MOVE YOUR APPOINTMENT TO!** 🚨`
+    : `ℹ️ **ASP Checker**: No new dates since the last alert. Still available${scope}:`;
+  const editUrl = `https://eservicii.gov.md/asp/dimtcca/cerere/${data.type?.code || 'APO01'}/Edit/${data.id}`;
+
+  await sendDiscordDM(env, `${header}\n${dateLines}\n\n${current}\n👉 [Change Date on ASP Portal](<${editUrl}>)`);
+}
+
 export async function performScrape(
   env: Env,
   state: AppState,
@@ -58,22 +119,13 @@ export async function performScrape(
     const text = await res.text();
     state.fetches_today++;
 
-    if (state.url_type === 'booking') {
+    if (state.url_type === 'booking' || state.url_type === 'edit') {
       try {
         const data: any = JSON.parse(text);
 
-        // 1. Check if an appointment was successfully booked
-        if (data.hasAppointment === true) {
-          let dateStr = "Unknown Date";
-          if (data.serviceRequest?.examinationDate) {
-            const datePart = data.serviceRequest.examinationDate.split('T')[0];
-            const timePart = data.serviceRequest.examinationTime?.time || "";
-            dateStr = `${datePart} ${timePart}`.trim();
-          } else if (data.appointment?.date) {
-            dateStr = data.appointment.date;
-          }
-          
-          await sendDiscordDM(env, `✅ **SUCCESSFUL BOOKING DETECTED!** ✅\nDate: ${dateStr}\nStopping the scraper now.`);
+        // 1. Check if an appointment was successfully booked (in edit mode one already exists)
+        if (data.hasAppointment === true && state.url_type !== 'edit') {
+          await sendDiscordDM(env, `✅ **SUCCESSFUL BOOKING DETECTED!** ✅\nDate: ${formatAppointment(data)}\nStopping the scraper now.`);
           state.is_scraping = false; // Stop scraping
           return state;
         }
@@ -104,6 +156,12 @@ export async function performScrape(
           if (datesRes.ok) {
             const allDates: any = await datesRes.json();
             const dates = Array.isArray(allDates) ? allDates : [];
+
+            if (state.url_type === 'edit') {
+              await notifyEditDates(env, state, data, dates, targetMonth, monthLabel, isManual);
+              return state;
+            }
+
             const filteredDates = filterDatesByMonth(dates, targetMonth);
 
             if (filteredDates.length > 0) {
@@ -158,6 +216,9 @@ export async function performScrape(
 
       } catch (e) {
         console.error("Failed to parse booking JSON", e);
+        if (isManual) {
+          await sendDiscordDM(env, `⚠️ **ASP Checker**: Could not read your application. Make sure the link is correct.`);
+        }
       }
     } else if (state.url_type === 'dates') {
       try {

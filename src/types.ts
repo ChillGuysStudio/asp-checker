@@ -8,7 +8,7 @@ export interface Env {
 
 export interface AppState {
   target_url: string | null;
-  url_type: 'dates' | 'booking' | null;
+  url_type: 'dates' | 'booking' | 'edit' | null;
   is_scraping: boolean;
   fetches_today: number;
   found_dates_today: boolean;

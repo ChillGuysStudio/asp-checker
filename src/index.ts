@@ -70,8 +70,16 @@ export default {
               }
               const monthLabel = state.target_month ? (MONTH_NAMES[state.target_month] || state.target_month) : 'All Months';
               
+              // Edit links (/cerere/<code>/Edit/<id>) reschedule an existing appointment. They share the
+              // booking API endpoint, which has no "Edit" segment.
+              const editMatch = url.match(/\/cerere\/([^/?#]+)\/edit\/([^/?#]+)/i);
+
               // Auto-convert frontend booking URL to the API booking URL
-              if (url.includes('/cerere/')) {
+              if (editMatch) {
+                state.target_url = `https://eservicii.gov.md/asp/dimtcca/api/fod/request/${editMatch[1]}/${editMatch[2]}`;
+                state.url_type = 'edit';
+                replyMessage = `✅ Target URL set. Type detected: **Edit Appointment Date**.\n- Monitored Month: **${monthLabel}**\nI will alert you whenever a new date appears that you could move your appointment to.`;
+              } else if (url.includes('/cerere/')) {
                 url = url.replace('/cerere/', '/api/fod/request/');
                 state.target_url = url;
                 state.url_type = 'booking';
@@ -132,6 +140,19 @@ export default {
                 })
               );
             }
+          }
+        }
+        else if (command === 'clear') {
+          const clearAll = interaction.data.options?.find((o: any) => o.name === 'all')?.value === true;
+          if (clearAll) {
+            await env.STATE.delete('daily_stats');
+            replyMessage = `🧹 Everything was cleared, including the target URL. Use \`/set\` to start again.`;
+          } else {
+            state.last_notified_dates = null;
+            state.found_dates_today = false;
+            state.fetches_today = 0;
+            await env.STATE.put('daily_stats', JSON.stringify(state));
+            replyMessage = `🧹 Cached dates and counters were cleared. Your URL and month filter were kept, so available dates will be alerted again on the next check.`;
           }
         }
         else if (command === 'status') {

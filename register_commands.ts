@@ -26,7 +26,7 @@ const MONTH_CHOICES = [
 const commands = [
   {
     name: 'set',
-    description: 'Set target URL and optional month filter to monitor every 30 minutes',
+    description: 'Set target URL and optional month filter to monitor every 15 minutes',
     options: [
       {
         type: 3, // STRING
@@ -78,6 +78,18 @@ const commands = [
         name: 'status',
         description: 'True to start scraping, False to stop',
         required: true,
+      }
+    ]
+  },
+  {
+    name: 'clear',
+    description: 'Clear cached dates and counters (or everything, including the URL)',
+    options: [
+      {
+        type: 5, // BOOLEAN
+        name: 'all',
+        description: 'True to also remove the target URL and month filter (defaults to False)',
+        required: false,
       }
     ]
   },

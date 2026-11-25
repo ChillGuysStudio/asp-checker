@@ -18,11 +18,12 @@ Rulează automat în fundal folosind Cloudflare Cron Triggers și te alertează 
 
 ## 🤖 Comenzi Discord
 
-- `/set [url] [month]` - Setează URL-ul țintă pentru a fi verificat la fiecare 30 de minute, cu un filtru opțional pentru lună (implicit toate lunile). **Notă:** Ar trebui să setezi link-ul online al "cererii" care arată cam așa `https://eservicii.gov.md/asp/dimtcca/cerere/booking_code/some_id`. Bot-ul va verifica automat datele libere din calendar și starea programării!
+- `/set [url] [month]` - Setează URL-ul țintă pentru a fi verificat la fiecare 15 minute, cu un filtru opțional pentru lună (implicit toate lunile). **Notă:** Ar trebui să setezi link-ul online al "cererii" care arată cam așa `https://eservicii.gov.md/asp/dimtcca/cerere/booking_code/some_id`. Bot-ul va verifica automat datele libere din calendar și starea programării! Pentru a muta o programare existentă, folosește link-ul de editare (`https://eservicii.gov.md/asp/dimtcca/cerere/booking_code/Edit/some_id`): bot-ul te va anunța de fiecare dată când apare o dată nouă și nu se va opri automat.
 - `/fetch [month]` - Forțează o verificare imediată. Poți alege opțional o lună specifică pentru această verificare.
 - `/month [month]` - Actualizează filtrul de lună monitorizată în fundal (sau alege "All Months").
 - `/status` - Afișează URL-ul activ curent, luna monitorizată, starea de funcționare și numărul de verificări efectuate astăzi.
 - `/toggle [True/False]` - Pornește sau oprește manual verificarea în fundal.
+- `/clear [all]` - Șterge datele memorate și contoarele, astfel încât datele libere să fie anunțate din nou. Cu `all: True`, șterge și URL-ul și filtrul de lună.
 
 ## 🛠 Tehnologii Folosite
 
